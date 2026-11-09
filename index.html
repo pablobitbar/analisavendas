@@ -113,6 +113,28 @@ table.ped td.r,table.ped th.r{white-space:nowrap}
 .detail-box h3{font-size:.9rem;margin:0 0 10px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
 .detail-box h3 button{font-size:.75rem;padding:4px 8px;border-radius:6px}
 
+
+/* Overlay do Loader no Mapa */
+.map-wrapper { position: relative; width: 100%; height: 520px; }
+#mapContainer { width: 100%; height: 100%; border-radius: 10px; border: 1px solid var(--line); z-index: 1; }
+.map-loader {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  background: var(--surface); border-radius: 10px; border: 1px solid var(--line);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 20; transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+.map-loader.hidden-loader { opacity: 0; visibility: hidden; pointer-events: none; }
+.spinner {
+  width: 44px; height: 44px; border: 4px solid var(--line);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin 0.8s linear infinite; margin-bottom: 14px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loader-text { font-size: 0.95rem; font-weight: 600; color: var(--ink); margin-bottom: 6px; text-align: center; }
+.loader-sub { font-size: 0.8rem; color: var(--muted); text-align: center; }
+.progress-bar-bg { width: 220px; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 10px; }
+.progress-bar-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.3s ease; }
+
 /* Estilos do Mapa */
 #mapContainer{width:100%;height:520px;border-radius:10px;border:1px solid var(--line);z-index:1}
 .leaflet-container{font-family:inherit}
@@ -215,7 +237,15 @@ table.ped td.r,table.ped th.r{white-space:nowrap}
         <div class="kpi"><b id="m-tot-bai">0</b><span>Bairros atendidos</span></div>
         <div class="kpi"><b id="m-top-bai">—</b><span>Bairro líder</span></div>
       </div>
-      <div id="mapContainer"></div>
+      <div class="map-wrapper">
+        <div id="mapLoader" class="map-loader hidden-loader">
+          <div class="spinner"></div>
+          <div class="loader-text" id="loaderText">Carregando mapa...</div>
+          <div class="loader-sub" id="loaderSub">Aguarde o processamento das localizações</div>
+          <div class="progress-bar-bg"><div class="progress-bar-fill" id="loaderBar"></div></div>
+        </div>
+        <div id="mapContainer"></div>
+      </div>
       <p class="sub" style="margin-top:10px" id="mapStatus">Geocodificando bairros em tempo real via OpenStreetMap...</p>
     </section>
 
@@ -593,10 +623,9 @@ $('cp-hora-reset').onclick = () => {
   produtosRender(filtradas());
 };
 
-// ---- MÓDULO DO MAPA DE CALOR (Leaflet + OpenStreetMap + Nominatim Cache) ----
+// ---- MÓDULO DO MAPA DE CALOR (Leaflet + Photon / OpenStreetMap + Cache + Loader) ----
 let mapObj = null, heatLayer = null, markersGroup = null, geoCache = new Map();
 
-// Tenta obter coordenadas salvas localmente
 try {
   const cached = localStorage.getItem('dash.geoCache');
   if (cached) geoCache = new Map(JSON.parse(cached));
@@ -607,7 +636,6 @@ function saveGeoCache() {
     localStorage.setItem('dash.geoCache', JSON.stringify([...geoCache.entries()]));
   } catch(e){}
 }
-
 
 const COORDS_PREDEFINIDAS = {
   "centro, passo fundo": [-28.2625, -52.4083],
@@ -624,29 +652,13 @@ const COORDS_PREDEFINIDAS = {
   "vila vera cruz, passo fundo": [-28.2660, -52.3980],
   "vera cruz, passo fundo": [-28.2660, -52.3980],
   "vila nicolau vergueiro, passo fundo": [-28.2675, -52.4150],
-  "nicolau vergueiro, passo fundo": [-28.2675, -52.4150],
-  "são cristovao, passo fundo": [-28.2410, -52.3820],
-  "sao cristovao, passo fundo": [-28.2410, -52.3820],
-  "são cristóvão, passo fundo": [-28.2410, -52.3820],
-  "vila santa terezinha, passo fundo": [-28.2750, -52.4100],
-  "santa terezinha, passo fundo": [-28.2750, -52.4100],
   "cidade nova, passo fundo": [-28.2800, -52.4300],
-  "vila santa maria, passo fundo": [-28.2590, -52.4250],
-  "santa maria, passo fundo": [-28.2590, -52.4250],
-  "vila luiza, passo fundo": [-28.2680, -52.4050],
-  "luiza, passo fundo": [-28.2680, -52.4050],
-  "vila popular, passo fundo": [-28.2520, -52.4280],
-  "popular, passo fundo": [-28.2520, -52.4280],
-  "integração, passo fundo": [-28.2350, -52.3750],
-  "integracao, passo fundo": [-28.2350, -52.3750],
-  "são luiz gonzaga, passo fundo": [-28.2450, -52.4020],
-  "sao luiz, passo fundo": [-28.2450, -52.4020],
-  "valinhos, passo fundo": [-28.2850, -52.4120],
-  "pohl, passo fundo": [-28.2600, -52.3900],
-  "atrapados, passo fundo": [-28.2640, -52.3880],
-  "maggi de cesaro, passo fundo": [-28.2820, -52.4400],
-  "são josé, passo fundo": [-28.2380, -52.3950],
-  "sao jose, passo fundo": [-28.2380, -52.3950]
+  "bom sucesso, gravatai": [-29.9320, -51.0020],
+  "bom sucesso, gravataí": [-29.9320, -51.0020],
+  "city nova faze, cachoeirinha": [-29.9480, -51.0850],
+  "bom princípio, cachoeirinha": [-29.9390, -51.0960],
+  "bom principio, cachoeirinha": [-29.9390, -51.0960],
+  "vale do sol, cachoeirinha": [-29.9328, -51.0895],
 };
 
 function hashString(str) {
@@ -658,21 +670,45 @@ function hashString(str) {
   return Math.abs(hash);
 }
 
+// Geocodificador inteligente com múltiplos fallbacks livres de CORS e priorização de município
 async function geocodificar(bairro, cidade) {
   const bClean = bairro.toLowerCase().trim();
   const cClean = cidade.toLowerCase().trim();
   const key = `${bClean}, ${cClean}`;
   
-  // 1. Procura na lista de coordenadas predefinidas
   if (COORDS_PREDEFINIDAS[key]) return COORDS_PREDEFINIDAS[key];
-
-  // 2. Procura no cache do navegador (localStorage)
   if (geoCache.has(key) && geoCache.get(key) !== null) return geoCache.get(key);
 
-  // 3. Tenta buscar no Nominatim OpenStreetMap
+  // Garantir a inclusão do estado/país para contextualizar a busca geográfica no Brasil
+  const uf = (cClean.includes('rs') || true) ? 'Rio Grande do Sul' : '';
+
+  // Tentativa 1: API Photon (Komoot) com parâmetro estruturado explícito de Bairro + Município
   try {
-    const query = encodeURIComponent(`${bairro}, ${cidade}, Brasil`);
-    const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1&accept-language=pt-BR`);
+    // Especificamos "bairro X, município Y" para evitar cair no município homônimo
+    const qPhoton = encodeURIComponent(`bairro ${bairro}, ${cidade}, ${uf}, Brasil`);
+    const respP = await fetch(`https://photon.komoot.io/api/?q=${qPhoton}&limit=5`);
+    if (respP.ok) {
+      const dataP = await respP.json();
+      if (dataP && dataP.features && dataP.features.length > 0) {
+        // Tenta encontrar um resultado cujo município/cidade/county bata com a cidade do pedido
+        const match = dataP.features.find(f => {
+          const props = f.properties || {};
+          const cityMatch = (props.city || props.town || props.district || props.county || '').toLowerCase();
+          return cityMatch.includes(cClean) || cClean.includes(cityMatch);
+        }) || dataP.features[0];
+
+        const coords = [match.geometry.coordinates[1], match.geometry.coordinates[0]];
+        geoCache.set(key, coords);
+        saveGeoCache();
+        return coords;
+      }
+    }
+  } catch(e) {}
+
+  // Tentativa 2: Nominatim OSM com busca qualificada ("bairro X, cidade Y")
+  try {
+    const qNominatim = encodeURIComponent(`bairro ${bairro}, ${cidade}, Brasil`);
+    const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${qNominatim}&limit=3&accept-language=pt-BR`);
     if (resp.ok) {
       const data = await resp.json();
       if (data && data.length > 0) {
@@ -682,32 +718,47 @@ async function geocodificar(bairro, cidade) {
         return coords;
       }
     }
-  } catch(e) {
-    // Erro de CORS ou bloqueio 429
-  }
+  } catch(e) {}
 
-  // 4. Fallback determinístico (Garante posição única próxima da cidade se falhar requisição externa)
-  // Passo Fundo base [-28.2625, -52.4083]
+  // Fallback Geográfico Seguro ancorado na cidade principal do pedido
   const hash = hashString(key);
   const latOffset = ((hash % 100) - 50) * 0.0006;
   const lngOffset = (((hash >> 2) % 100) - 50) * 0.0006;
   
-  // Coordenada base se for Passo Fundo ou Porto Alegre
-  let base = [-28.2625, -52.4083]; // Passo Fundo
+  let base = [-29.9510, -51.0940]; // Cachoeirinha padrão
+  if (cClean.includes('passo fundo')) base = [-28.2625, -52.4083];
   if (cClean.includes('porto alegre')) base = [-30.0346, -51.2177];
-  
+  if (cClean.includes('gravatai') || cClean.includes('gravataí')) base = [-29.9430, -50.9920];
+  if (cClean.includes('canoas')) base = [-29.9178, -51.1836];
+  if (cClean.includes('novo hamburgo')) base = [-29.6842, -51.1306];
+
   const fallbackCoords = [base[0] + latOffset, base[1] + lngOffset];
   geoCache.set(key, fallbackCoords);
   saveGeoCache();
   return fallbackCoords;
 }
 
+let mapaProcessando = false;
 
 async function mapaRender(listaVendas) {
   if (!$('dash').dataset.tab || $('dash').dataset.tab !== 'mapa') return;
+  if (mapaProcessando) return;
+  mapaProcessando = true;
+
+  const loader = $('mapLoader');
+  const lText = $('loaderText');
+  const lSub = $('loaderSub');
+  const lBar = $('loaderBar');
+
+  if (loader) {
+    loader.classList.remove('hidden-loader');
+    lBar.style.width = '5%';
+    lText.textContent = 'Mapeando entregas...';
+    lSub.textContent = 'Analisando bairros do arquivo importado';
+  }
 
   if (!mapObj) {
-    mapObj = window.L.map('mapContainer').setView([-28.2625, -52.4083], 13); // Padrão Passo Fundo / RS
+    mapObj = window.L.map('mapContainer').setView([-29.9380, -51.0020], 12);
     window.L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
       maxZoom: 18,
       attribution: '© OpenStreetMap France, © OpenStreetMap contributors'
@@ -715,7 +766,6 @@ async function mapaRender(listaVendas) {
     markersGroup = window.L.layerGroup().addTo(mapObj);
   }
 
-  // Agrupar pedidos por bairro/cidade
   const bairrosMap = {};
   let totalPed = 0;
 
@@ -737,40 +787,47 @@ async function mapaRender(listaVendas) {
   $('m-top-bai').textContent = listaBairros.length ? `${listaBairros[0].bairro} (${listaBairros[0].qtd})` : '—';
 
   if (!listaBairros.length) {
+    if (loader) loader.classList.add('hidden-loader');
     $('mapStatus').textContent = 'Nenhum pedido com bairro cadastrado encontrado nos filtros atuais.';
+    mapaProcessando = false;
     return;
   }
 
-  $('mapStatus').textContent = 'Processando localizações dos bairros...';
+  markersGroup.clearLayers();
+  if (heatLayer) { mapObj.removeLayer(heatLayer); heatLayer = null; }
 
-  // Buscar coordenadas para os bairros
   const heatPoints = [];
   const coordsList = [];
-  markersGroup.clearLayers();
-
+  const totalBairros = listaBairros.length;
   const maxQtd = Math.max(...listaBairros.map(x => x.qtd), 1);
 
-  for (let i = 0; i < listaBairros.length; i++) {
+  for (let i = 0; i < totalBairros; i++) {
     const item = listaBairros[i];
-    const coords = await geocodificar(item.bairro, item.cidade);
-    
-    // Pequena pausa para respeitar a política da API do OpenStreetMap (1 req/sec) se não estiver em cache
-    if (!geoCache.has(`${item.bairro.toLowerCase().trim()}, ${item.cidade.toLowerCase().trim()}`)) {
-      await new Promise(r => setTimeout(r, 400));
+    const key = `${item.bairro.toLowerCase().trim()}, ${item.cidade.toLowerCase().trim()}`;
+    const emCache = COORDS_PREDEFINIDAS[key] || geoCache.has(key);
+
+    if (loader) {
+      const pct = Math.round(((i + 1) / totalBairros) * 100);
+      lBar.style.width = pct + '%';
+      lText.textContent = `Processando bairros (${i + 1}/${totalBairros})`;
+      lSub.textContent = `Bairro atual: ${item.bairro} (${item.cidade})`;
     }
+
+    // Se for uma requisição externa nova, coloca um delay de 1.5s para evitar completamente estouro de taxa
+    if (!emCache) {
+      await new Promise(r => setTimeout(r, 1500));
+    }
+
+    const coords = await geocodificar(item.bairro, item.cidade);
 
     if (coords) {
       coordsList.push(coords);
-      const intensidade = item.qtd / maxQtd;
-      // Adiciona múltiplos pontos proporcionais à quantidade de pedidos para dar densidade ao heat map
       for(let k=0; k < Math.min(item.qtd, 25); k++) {
-        // Pequena variação aleatória de offset para dispersar o calor suavemente no bairro
         const latOffset = (Math.random() - 0.5) * 0.006;
         const lngOffset = (Math.random() - 0.5) * 0.006;
         heatPoints.push([coords[0] + latOffset, coords[1] + lngOffset, 0.8]);
       }
 
-      // Marcador no bairro
       if ($('m-toggle-pins').checked) {
         const marker = window.L.circleMarker(coords, {
           radius: Math.max(6, Math.min(18, item.qtd * 2)),
@@ -780,14 +837,13 @@ async function mapaRender(listaVendas) {
           opacity: 1,
           fillOpacity: 0.85
         });
-        marker.bindPopup(`<b>${esc(item.bairro)}</b><br>${item.qtd} pedidos (${brl(item.total)})`);
+        marker.bindPopup(`<b>${esc(item.bairro)}</b> (${esc(item.cidade)})<br>${item.qtd} pedidos (${brl(item.total)})`);
         markersGroup.addLayer(marker);
       }
     }
   }
 
-  // Desenhar camada de calor
-  if (heatLayer) mapObj.removeLayer(heatLayer);
+  // Montagem do mapa de calor de uma só vez (batch)
   if ($('m-toggle-heat').checked && heatPoints.length > 0) {
     heatLayer = window.L.heatLayer(heatPoints, {
       radius: 25,
@@ -797,13 +853,21 @@ async function mapaRender(listaVendas) {
     }).addTo(mapObj);
   }
 
-  // Ajustar zoom automaticamente para caber todos os bairros encontrados
   if (coordsList.length > 0) {
     mapObj.fitBounds(coordsList, { padding: [30, 30] });
     $('mapStatus').textContent = `Mapeamento concluído com sucesso para ${coordsList.length} bairros.`;
   } else {
     $('mapStatus').textContent = 'Não foi possível encontrar as coordenadas geográficas dos bairros.';
   }
+
+  // Esconde o loader quando estiver 100% pronto
+  if (loader) {
+    setTimeout(() => {
+      loader.classList.add('hidden-loader');
+    }, 300);
+  }
+
+  mapaProcessando = false;
 }
 
 $('m-toggle-heat').onchange = () => mapaRender(filtradas());
@@ -959,7 +1023,14 @@ $('fileF').onchange=async e=>{
 const pick=()=>$('file').click();
 $('add').onclick=pick;$('add2').onclick=pick;
 $('file').onchange=e=>{importar([...e.target.files]);e.target.value='';};
-$('limpar').onclick=()=>{vendas.clear();expandido.clear();$('dash').hidden=true;$('drop').hidden=false;$('limpar').hidden=true;$('periodo').textContent='Importe um ou mais arquivos JSON de vendas';};
+$('limpar').onclick=()=>{
+  vendas.clear(); expandido.clear();
+  if(markersGroup) markersGroup.clearLayers();
+  if(heatLayer && mapObj) mapObj.removeLayer(heatLayer);
+  heatLayer = null;
+  $('dash').hidden=true; $('drop').hidden=false; $('limpar').hidden=false;
+  $('periodo').textContent='Importe um ou mais arquivos JSON de vendas';
+};
 ['dragover','dragenter'].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault();$('drop').classList.add('over');}));
 ['dragleave','drop'].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault();$('drop').classList.remove('over');}));
 document.addEventListener('drop',e=>importar([...e.dataTransfer.files]));
