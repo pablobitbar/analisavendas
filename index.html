@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Dashboard de Vendas</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap">
+<!-- Leaflet & Leaflet.heat (OpenStreetMap gratuito) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <style>
 :root{--bg:#f2f4f0;--surface:#fff;--ink:#1b2a22;--muted:#66756c;--line:#dde3dc;--accent:#1f4d3a;--hot:#c8372d;--bar:#1f4d3a;--bar2:#cfdcd3;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -61,6 +65,7 @@ tr.m{cursor:pointer}
 .tabs button:focus-visible{outline:2px solid var(--hot)}
 #dash[data-tab=resumo] [data-t]:not([data-t=resumo]),
 #dash[data-tab=produtos] [data-t]:not([data-t=produtos]),
+#dash[data-tab=mapa] [data-t]:not([data-t=mapa]),
 #dash[data-tab=custo] [data-t]:not([data-t=custo]),
 #dash[data-tab=pedidos] [data-t]:not([data-t=pedidos]){display:none}
 #dash[data-tab=dre] [data-t]:not([data-t=dre]),#dash[data-tab=dre] .hero,#dash[data-tab=dre] .filters{display:none}
@@ -104,10 +109,14 @@ table.ped td.r,table.ped th.r{white-space:nowrap}
 .pos{color:var(--accent);font-weight:600}.neg{color:var(--hot);font-weight:600}
 [hidden]{display:none!important}
 
-/* Detalhes por Hora */
 .detail-box{margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}
 .detail-box h3{font-size:.9rem;margin:0 0 10px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
 .detail-box h3 button{font-size:.75rem;padding:4px 8px;border-radius:6px}
+
+/* Estilos do Mapa */
+#mapContainer{width:100%;height:520px;border-radius:10px;border:1px solid var(--line);z-index:1}
+.leaflet-container{font-family:inherit}
+.map-kpis{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px}
 </style>
 </head>
 <body>
@@ -125,7 +134,14 @@ table.ped td.r,table.ped th.r{white-space:nowrap}
 <div id="drop"><p>Arraste os arquivos JSON de vendas aqui</p><button class="btn" id="add2">Escolher arquivos</button><div class="err" id="err"></div></div>
 
 <main id="dash" data-tab="resumo" hidden>
-  <nav class="tabs" aria-label="Seções"><button data-tab="resumo" class="on">Resumo</button><button data-tab="produtos">Produtos</button><button data-tab="custo">Custo x vendas</button><button data-tab="pedidos">Pedidos</button><button data-tab="dre">Comparativo mensal</button></nav>
+  <nav class="tabs" aria-label="Seções">
+    <button data-tab="resumo" class="on">Resumo</button>
+    <button data-tab="produtos">Produtos</button>
+    <button data-tab="mapa">Mapa de entregas (Tele)</button>
+    <button data-tab="custo">Custo x vendas</button>
+    <button data-tab="pedidos">Pedidos</button>
+    <button data-tab="dre">Comparativo mensal</button>
+  </nav>
   <div class="hero">
     <div><div class="big" id="k-fat"></div><div class="lbl">Faturamento</div></div>
     <div class="kpis" id="kpis"></div>
@@ -185,6 +201,24 @@ table.ped td.r,table.ped th.r{white-space:nowrap}
       <div id="cp-comp"></div>
     </section>
 
+    <!-- Aba Mapa de Calor -->
+    <section class="card wide" data-t="mapa">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+        <h2 style="margin:0">Mapa de calor de entregas (Tele-entrega por Bairro)</h2>
+        <div style="display:flex;gap:10px;align-items:center">
+          <label class="sub"><input type="checkbox" id="m-toggle-heat" checked> Mapa de Calor</label>
+          <label class="sub"><input type="checkbox" id="m-toggle-pins" checked> Marcadores dos Bairros</label>
+        </div>
+      </div>
+      <div class="map-kpis">
+        <div class="kpi"><b id="m-tot-ped">0</b><span>Pedidos com endereço</span></div>
+        <div class="kpi"><b id="m-tot-bai">0</b><span>Bairros atendidos</span></div>
+        <div class="kpi"><b id="m-top-bai">—</b><span>Bairro líder</span></div>
+      </div>
+      <div id="mapContainer"></div>
+      <p class="sub" style="margin-top:10px" id="mapStatus">Geocodificando bairros em tempo real via OpenStreetMap...</p>
+    </section>
+
     <!-- Custo x Vendas -->
     <section class="card wide" id="s-custo" data-t="custo" hidden><div class="bar" style="justify-content:space-between"><h2 style="margin:0">Custo da ficha técnica x venda</h2><button class="btn ghost" id="xlsC" hidden>Exportar Excel</button></div><div class="bar sm"><label>CMV % <input type="number" id="c-cmv-min" step="any" placeholder="de"><input type="number" id="c-cmv-max" step="any" placeholder="até"></label><label>Custo total R$ <input type="number" id="c-cus-min" step="any" placeholder="de"><input type="number" id="c-cus-max" step="any" placeholder="até"></label></div><div class="tw"><table><thead><tr><th data-c="nome">Produto</th><th class="r" data-c="q">Qtde</th><th class="r" data-c="rec">Receita</th><th class="r" data-c="custo">Custo</th><th class="r" data-c="lucro">Lucro bruto</th><th class="r" data-c="cmv">CMV</th></tr></thead><tbody id="tc"></tbody></table></div><div class="pager"><button class="btn ghost" id="cPrev">Anterior</button><span id="cInfo"></span><button class="btn ghost" id="cNext">Próxima</button></div><p class="sub" id="semficha"></p></section>
     <section class="card wide" id="s-custo-vazio" data-t="custo"><h2>Fichas técnicas não importadas</h2><p class="sub" style="margin-bottom:12px">Importe as fichas para ver o custo de cada produto e a margem das vendas.</p><button class="btn" id="addF2">Importar fichas técnicas</button></section>
@@ -208,8 +242,19 @@ table.ped td.r,table.ped th.r{white-space:nowrap}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
+// Patch para eliminar o aviso de canvas willReadFrequently do Leaflet.heat
+(function() {
+  const origGetContext = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = function(type, attribs) {
+    if (type === '2d') {
+      attribs = attribs || {};
+      attribs.willReadFrequently = true;
+    }
+    return origGetContext.call(this, type, attribs);
+  };
+})();
+
 const $=id=>document.getElementById(id);
-// Arredondamento conforme ABNT NBR 5891
 function rABNT(v,d=2){
   if(!isFinite(v))return 0;
   const f=10**d,x=+(Math.abs(v)*f).toPrecision(12),fl=Math.floor(x);
@@ -422,7 +467,6 @@ function semanaRender(L){
 
 // ---- Renderização da Aba de Produtos com filtro Interativo por Hora ----
 function produtosRender(L){
-  // 1. Venda por hora (Unidades de produtos)
   const hProd = Array(24).fill(0);
   L.forEach(v => {
     const hr = parseInt((v.hora || '0').slice(0, 2));
@@ -435,9 +479,7 @@ function produtosRender(L){
         b = ativas.length ? ativas[ativas.length - 1] : 23, 
         mh = Math.max(...hProd, 1);
 
-  // Atualizar select de horas
   const selH = $('f-hora-sel');
-  const selVal = selH.value;
   selH.innerHTML = '<option value="">Todas as horas (clique numa barra)</option>' +
     ativas.map(i => `<option value="${i}" ${horaSelecionada===i?'selected':''}>${i}h:00 – ${i}h:59 (${fmtQ(hProd[i])} un.)</option>`).join('');
   if (horaSelecionada !== null && ativas.includes(horaSelecionada)) {
@@ -447,7 +489,6 @@ function produtosRender(L){
     selH.value = "";
   }
 
-  // Desenhar barras interativas por hora
   let s = '';
   for (let i = a; i <= b; i++) {
     const isSel = horaSelecionada === i;
@@ -455,7 +496,6 @@ function produtosRender(L){
   }
   $('cp-hora').innerHTML = s;
 
-  // Evento de clique nas barras do gráfico de hora
   document.querySelectorAll('#cp-hora div').forEach(div => {
     div.onclick = () => {
       const hr = parseInt(div.dataset.hr);
@@ -464,7 +504,6 @@ function produtosRender(L){
     };
   });
 
-  // Lista dos produtos mais vendidos conforme a hora selecionada (ou todas)
   let LFiltered = L;
   if (horaSelecionada !== null) {
     LFiltered = L.filter(v => parseInt((v.hora || '0').slice(0, 2)) === horaSelecionada);
@@ -478,7 +517,6 @@ function produtosRender(L){
   const prodHora = agrupar(LFiltered, v => v.produtos.map(p => p.descricao), (v, k) => v.produtos.filter(p => p.descricao === k).reduce((s, p) => s + (p.qtde || 1), 0));
   barras('cp-hora-lista', prodHora, fmtQ, 10);
 
-  // 2. Mais vendidos na semana (últimos 7 dias)
   const maxDataStr = L.reduce((max, v) => (dia(v) > max ? dia(v) : max), '');
   let LSemana = L;
   if (maxDataStr) {
@@ -490,12 +528,10 @@ function produtosRender(L){
   const prodSemana = agrupar(LSemana, v => v.produtos.map(p => p.descricao), (v, k) => v.produtos.filter(p => p.descricao === k).reduce((s, p) => s + (p.qtde || 1), 0));
   barras('cp-sem', prodSemana, fmtQ, 8);
 
-  // 3. Menos vendidos no período
   const prodQtd = agrupar(L, v => v.produtos.map(p => p.descricao), (v, k) => v.produtos.filter(p => p.descricao === k).reduce((s, p) => s + (p.qtde || 1), 0));
   const prodMenos = [...prodQtd].reverse();
   barras('cp-menos', prodMenos, fmtQ, 8);
 
-  // Agrupamento de margem
   const g = {};
   L.forEach(v => v.produtos.forEach(p => {
     const r = custoLinha(p), n = p.descricao;
@@ -529,7 +565,6 @@ function produtosRender(L){
     barras('cp-m-baixa', baixa.map(x => [x.n, x.margem]), v => rABNT(v, 1).toFixed(1).replace('.', ',') + '%', 8);
   }
 
-  // 6. Gráfico comparativo de produtos
   const metrica = $('cp-metrica').value || 'rec';
   const todosProds = Object.entries(g).map(([n, x]) => ({
     n,
@@ -558,6 +593,149 @@ $('cp-hora-reset').onclick = () => {
   produtosRender(filtradas());
 };
 
+// ---- MÓDULO DO MAPA DE CALOR (Leaflet + OpenStreetMap + Nominatim Cache) ----
+let mapObj = null, heatLayer = null, markersGroup = null, geoCache = new Map();
+
+// Tenta obter coordenadas salvas localmente
+try {
+  const cached = localStorage.getItem('dash.geoCache');
+  if (cached) geoCache = new Map(JSON.parse(cached));
+} catch(e){}
+
+function saveGeoCache() {
+  try {
+    localStorage.setItem('dash.geoCache', JSON.stringify([...geoCache.entries()]));
+  } catch(e){}
+}
+
+async function geocodificar(bairro, cidade) {
+  const key = `${bairro.toLowerCase().trim()}, ${cidade.toLowerCase().trim()}`;
+  if (geoCache.has(key)) return geoCache.get(key);
+
+  try {
+    const query = encodeURIComponent(`${bairro}, ${cidade}, Brasil`);
+    const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1&accept-language=pt-BR`);
+    const data = await resp.json();
+    if (data && data.length > 0) {
+      const coords = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+      geoCache.set(key, coords);
+      saveGeoCache();
+      return coords;
+    }
+  } catch(e) {
+    console.warn('Geocodificação falhou para:', key);
+  }
+  geoCache.set(key, null);
+  saveGeoCache();
+  return null;
+}
+
+async function mapaRender(listaVendas) {
+  if (!$('dash').dataset.tab || $('dash').dataset.tab !== 'mapa') return;
+
+  if (!mapObj) {
+    mapObj = window.L.map('mapContainer').setView([-30.0346, -51.2177], 12); // Padrão Brasil / RS
+    window.L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '© OpenStreetMap France, © OpenStreetMap contributors'
+    }).addTo(mapObj);
+    markersGroup = window.L.layerGroup().addTo(mapObj);
+  }
+
+  // Agrupar pedidos por bairro/cidade
+  const bairrosMap = {};
+  let totalPed = 0;
+
+  listaVendas.forEach(v => {
+    const b = v.cliente?.endereco?.bairro?.trim();
+    const c = v.cliente?.endereco?.cidade?.trim() || 'Brasil';
+    if (!b) return;
+    totalPed++;
+    const key = `${b}|${c}`;
+    if (!bairrosMap[key]) bairrosMap[key] = { bairro: b, cidade: c, qtd: 0, total: 0 };
+    bairrosMap[key].qtd++;
+    bairrosMap[key].total += (v.total || 0);
+  });
+
+  const listaBairros = Object.values(bairrosMap).sort((a,b) => b.qtd - a.qtd);
+  
+  $('m-tot-ped').textContent = totalPed;
+  $('m-tot-bai').textContent = listaBairros.length;
+  $('m-top-bai').textContent = listaBairros.length ? `${listaBairros[0].bairro} (${listaBairros[0].qtd})` : '—';
+
+  if (!listaBairros.length) {
+    $('mapStatus').textContent = 'Nenhum pedido com bairro cadastrado encontrado nos filtros atuais.';
+    return;
+  }
+
+  $('mapStatus').textContent = 'Processando localizações dos bairros...';
+
+  // Buscar coordenadas para os bairros
+  const heatPoints = [];
+  const coordsList = [];
+  markersGroup.clearLayers();
+
+  const maxQtd = Math.max(...listaBairros.map(x => x.qtd), 1);
+
+  for (let i = 0; i < listaBairros.length; i++) {
+    const item = listaBairros[i];
+    const coords = await geocodificar(item.bairro, item.cidade);
+    
+    // Pequena pausa para respeitar a política da API do OpenStreetMap (1 req/sec) se não estiver em cache
+    if (!geoCache.has(`${item.bairro.toLowerCase().trim()}, ${item.cidade.toLowerCase().trim()}`)) {
+      await new Promise(r => setTimeout(r, 400));
+    }
+
+    if (coords) {
+      coordsList.push(coords);
+      const intensidade = item.qtd / maxQtd;
+      // Adiciona múltiplos pontos proporcionais à quantidade de pedidos para dar densidade ao heat map
+      for(let k=0; k < Math.min(item.qtd, 25); k++) {
+        // Pequena variação aleatória de offset para dispersar o calor suavemente no bairro
+        const latOffset = (Math.random() - 0.5) * 0.006;
+        const lngOffset = (Math.random() - 0.5) * 0.006;
+        heatPoints.push([coords[0] + latOffset, coords[1] + lngOffset, 0.8]);
+      }
+
+      // Marcador no bairro
+      if ($('m-toggle-pins').checked) {
+        const marker = window.L.circleMarker(coords, {
+          radius: Math.max(6, Math.min(18, item.qtd * 2)),
+          fillColor: 'var(--accent, #1f4d3a)',
+          color: '#fff',
+          weight: 1.5,
+          opacity: 1,
+          fillOpacity: 0.85
+        });
+        marker.bindPopup(`<b>${esc(item.bairro)}</b><br>${item.qtd} pedidos (${brl(item.total)})`);
+        markersGroup.addLayer(marker);
+      }
+    }
+  }
+
+  // Desenhar camada de calor
+  if (heatLayer) mapObj.removeLayer(heatLayer);
+  if ($('m-toggle-heat').checked && heatPoints.length > 0) {
+    heatLayer = window.L.heatLayer(heatPoints, {
+      radius: 25,
+      blur: 18,
+      maxZoom: 15,
+      gradient: { 0.4: '#3182bd', 0.65: '#6baed6', 0.8: '#fd8d3c', 1.0: '#e6550d' }
+    }).addTo(mapObj);
+  }
+
+  // Ajustar zoom automaticamente para caber todos os bairros encontrados
+  if (coordsList.length > 0) {
+    mapObj.fitBounds(coordsList, { padding: [30, 30] });
+    $('mapStatus').textContent = `Mapeamento concluído com sucesso para ${coordsList.length} bairros.`;
+  } else {
+    $('mapStatus').textContent = 'Não foi possível encontrar as coordenadas geográficas dos bairros.';
+  }
+}
+
+$('m-toggle-heat').onchange = () => mapaRender(filtradas());
+$('m-toggle-pins').onchange = () => mapaRender(filtradas());
+
 function render(){
   const L=filtradas(), tot=L.reduce((s,v)=>s+(v.total||0),0), n=L.length;
   const desc=L.reduce((s,v)=>s+(v.desconto||0),0), taxa=L.reduce((s,v)=>s+(v.taxaExtra||0),0);
@@ -581,6 +759,7 @@ function render(){
   barras('c-cid',agrupar(L,v=>v.cliente?.endereco?.cidade&&v.cliente.endereco.cidade.trim().toLowerCase().replace(/(^|\s)\S/g,c=>c.toUpperCase()),v=>v.total||0),brl);
 
   produtosRender(L);
+  mapaRender(L);
   tabela(L);
 }
 
@@ -612,6 +791,12 @@ document.querySelectorAll('#dash .grid>section').forEach(s=>{
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
   $('dash').dataset.tab=b.dataset.tab;
   document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));
+  if (b.dataset.tab === 'mapa') {
+    setTimeout(() => {
+      if(mapObj) mapObj.invalidateSize();
+      mapaRender(filtradas());
+    }, 100);
+  }
 });
 
 $('f-mes').onchange=render;
