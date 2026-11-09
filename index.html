@@ -34,8 +34,12 @@ select,input[type=search]{font:inherit;padding:8px 10px;border:1px solid var(--l
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
 .card.wide{grid-column:1/-1}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+@media (max-width:768px){.grid-2{grid-template-columns:1fr}}
 .hours{display:flex;align-items:flex-end;gap:4px;height:170px;padding-top:8px}
-.hours div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;font-size:.7rem;color:var(--muted)}
+.hours div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;font-size:.7rem;color:var(--muted);cursor:pointer;transition:opacity .15s}
+.hours div:hover,.hours div.active{opacity:.85}
+.hours div.active i{outline:2px solid var(--accent);outline-offset:1px}
 .hours i{display:block;width:100%;background:var(--bar);border-radius:4px 4px 0 0;min-height:2px}
 .row{display:grid;grid-template-columns:minmax(90px,38%) 1fr auto;gap:10px;align-items:center;margin:7px 0;font-size:.88rem}
 .row .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -55,7 +59,10 @@ tr.m{cursor:pointer}
 .tabs button{font:inherit;font-weight:600;background:none;border:0;border-bottom:3px solid transparent;padding:10px 14px;color:var(--muted);cursor:pointer;white-space:nowrap}
 .tabs button.on{color:var(--ink);border-bottom-color:var(--accent)}
 .tabs button:focus-visible{outline:2px solid var(--hot)}
-#dash[data-tab=resumo] [data-t]:not([data-t=resumo]),#dash[data-tab=custo] [data-t]:not([data-t=custo]),#dash[data-tab=pedidos] [data-t]:not([data-t=pedidos]){display:none}
+#dash[data-tab=resumo] [data-t]:not([data-t=resumo]),
+#dash[data-tab=produtos] [data-t]:not([data-t=produtos]),
+#dash[data-tab=custo] [data-t]:not([data-t=custo]),
+#dash[data-tab=pedidos] [data-t]:not([data-t=pedidos]){display:none}
 #dash[data-tab=dre] [data-t]:not([data-t=dre]),#dash[data-tab=dre] .hero,#dash[data-tab=dre] .filters{display:none}
 #dreT td:first-child,#dreT th:first-child{position:sticky;left:0;background:var(--surface);min-width:210px}
 #dreT tr.sec td{font-weight:600;background:var(--bg);color:var(--muted)}
@@ -96,6 +103,11 @@ table.ped td.r,table.ped th.r{white-space:nowrap}
 .btn[disabled]{opacity:.4;cursor:default}
 .pos{color:var(--accent);font-weight:600}.neg{color:var(--hot);font-weight:600}
 [hidden]{display:none!important}
+
+/* Detalhes por Hora */
+.detail-box{margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}
+.detail-box h3{font-size:.9rem;margin:0 0 10px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.detail-box h3 button{font-size:.75rem;padding:4px 8px;border-radius:6px}
 </style>
 </head>
 <body>
@@ -113,7 +125,7 @@ table.ped td.r,table.ped th.r{white-space:nowrap}
 <div id="drop"><p>Arraste os arquivos JSON de vendas aqui</p><button class="btn" id="add2">Escolher arquivos</button><div class="err" id="err"></div></div>
 
 <main id="dash" data-tab="resumo" hidden>
-  <nav class="tabs" aria-label="Seções"><button data-tab="resumo" class="on">Resumo</button><button data-tab="custo">Custo x vendas</button><button data-tab="pedidos">Pedidos</button><button data-tab="dre">Comparativo mensal</button></nav>
+  <nav class="tabs" aria-label="Seções"><button data-tab="resumo" class="on">Resumo</button><button data-tab="produtos">Produtos</button><button data-tab="custo">Custo x vendas</button><button data-tab="pedidos">Pedidos</button><button data-tab="dre">Comparativo mensal</button></nav>
   <div class="hero">
     <div><div class="big" id="k-fat"></div><div class="lbl">Faturamento</div></div>
     <div class="kpis" id="kpis"></div>
@@ -124,19 +136,64 @@ table.ped td.r,table.ped th.r{white-space:nowrap}
     <select id="f-pag" aria-label="Pagamento"></select>
   </div>
   <div class="grid">
-    <section class="card wide"><h2>Faturamento por hora</h2><div class="hours" id="c-hora"></div></section>
-    <section class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px"><h2 style="margin:0">Clientes que mais compraram no mês</h2><select id="f-mes" aria-label="Mês"></select></div><div id="c-cli"></div></section>
-    <section class="card"><h2>Vendas por dia da semana</h2><div id="c-sem"></div></section>
-    <section class="card"><h2>Origem do pedido</h2><div id="c-orig"></div></section>
-    <section class="card"><h2>Formas de pagamento</h2><div id="c-pag"></div></section>
-    <section class="card"><h2>Produtos mais vendidos (quantidade)</h2><div id="c-prod"></div></section>
-    <section class="card"><h2>Sabores mais pedidos</h2><div id="c-sab"></div></section>
-    <section class="card"><h2>Bairros</h2><div id="c-bai"></div></section>
-    <section class="card"><h2>Cidades</h2><div id="c-cid"></div></section>
-    <section class="card wide" id="s-custo" hidden><div class="bar" style="justify-content:space-between"><h2 style="margin:0">Custo da ficha técnica x venda</h2><button class="btn ghost" id="xlsC" hidden>Exportar Excel</button></div><div class="bar sm"><label>CMV % <input type="number" id="c-cmv-min" step="any" placeholder="de"><input type="number" id="c-cmv-max" step="any" placeholder="até"></label><label>Custo total R$ <input type="number" id="c-cus-min" step="any" placeholder="de"><input type="number" id="c-cus-max" step="any" placeholder="até"></label></div><div class="tw"><table><thead><tr><th data-c="nome">Produto</th><th class="r" data-c="q">Qtde</th><th class="r" data-c="rec">Receita</th><th class="r" data-c="custo">Custo</th><th class="r" data-c="lucro">Lucro bruto</th><th class="r" data-c="cmv">CMV</th></tr></thead><tbody id="tc"></tbody></table></div><div class="pager"><button class="btn ghost" id="cPrev">Anterior</button><span id="cInfo"></span><button class="btn ghost" id="cNext">Próxima</button></div><p class="sub" id="semficha"></p></section>
+    <!-- Resumo -->
+    <section class="card wide" data-t="resumo"><h2>Faturamento por hora</h2><div class="hours" id="c-hora"></div></section>
+    <section class="card" data-t="resumo"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px"><h2 style="margin:0">Clientes que mais compraram no mês</h2><select id="f-mes" aria-label="Mês"></select></div><div id="c-cli"></div></section>
+    <section class="card" data-t="resumo"><h2>Vendas por dia da semana</h2><div id="c-sem"></div></section>
+    <section class="card" data-t="resumo"><h2>Origem do pedido</h2><div id="c-orig"></div></section>
+    <section class="card" data-t="resumo"><h2>Formas de pagamento</h2><div id="c-pag"></div></section>
+    <section class="card" data-t="resumo"><h2>Produtos mais vendidos (quantidade)</h2><div id="c-prod"></div></section>
+    <section class="card" data-t="resumo"><h2>Sabores mais pedidos</h2><div id="c-sab"></div></section>
+    <section class="card" data-t="resumo"><h2>Bairros</h2><div id="c-bai"></div></section>
+    <section class="card" data-t="resumo"><h2>Cidades</h2><div id="c-cid"></div></section>
+
+    <!-- Aba Produtos -->
+    <section class="card wide" data-t="produtos">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+        <h2 style="margin:0">Venda de produtos por hora (unidades)</h2>
+        <select id="f-hora-sel" aria-label="Filtrar por horário">
+          <option value="">Todas as horas (clique numa barra)</option>
+        </select>
+      </div>
+      <p class="sub" style="margin:0 0 12px">Clique em uma barra de horário para filtrar quais produtos foram vendidos especificamente naquela hora.</p>
+      <div class="hours" id="cp-hora"></div>
+      <div class="detail-box" id="cp-hora-det">
+        <h3><span id="cp-hora-tit">Produtos vendidos no período total</span><button class="btn ghost" id="cp-hora-reset" hidden>Ver todas as horas</button></h3>
+        <div id="cp-hora-lista"></div>
+      </div>
+    </section>
+    
+    <div class="card wide grid-2" data-t="produtos" style="background:none;border:0;padding:0">
+      <section class="card"><h2>Mais vendidos na semana</h2><div id="cp-sem"></div></section>
+      <section class="card"><h2>Menos vendidos (período)</h2><div id="cp-menos"></div></section>
+    </div>
+
+    <div class="card wide grid-2" data-t="produtos" style="background:none;border:0;padding:0">
+      <section class="card"><h2>Maior margem de lucro (%)</h2><div id="cp-m-alta"></div></section>
+      <section class="card"><h2>Margem apertada / Menor margem (%)</h2><div id="cp-m-baixa"></div></section>
+    </div>
+
+    <section class="card wide" data-t="produtos">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+        <h2 style="margin:0">Comparativo visual de produtos</h2>
+        <select id="cp-metrica" aria-label="Métrica">
+          <option value="rec">Receita (R$)</option>
+          <option value="q">Quantidade</option>
+          <option value="lucro">Lucro Bruto (R$)</option>
+        </select>
+      </div>
+      <div id="cp-comp"></div>
+    </section>
+
+    <!-- Custo x Vendas -->
+    <section class="card wide" id="s-custo" data-t="custo" hidden><div class="bar" style="justify-content:space-between"><h2 style="margin:0">Custo da ficha técnica x venda</h2><button class="btn ghost" id="xlsC" hidden>Exportar Excel</button></div><div class="bar sm"><label>CMV % <input type="number" id="c-cmv-min" step="any" placeholder="de"><input type="number" id="c-cmv-max" step="any" placeholder="até"></label><label>Custo total R$ <input type="number" id="c-cus-min" step="any" placeholder="de"><input type="number" id="c-cus-max" step="any" placeholder="até"></label></div><div class="tw"><table><thead><tr><th data-c="nome">Produto</th><th class="r" data-c="q">Qtde</th><th class="r" data-c="rec">Receita</th><th class="r" data-c="custo">Custo</th><th class="r" data-c="lucro">Lucro bruto</th><th class="r" data-c="cmv">CMV</th></tr></thead><tbody id="tc"></tbody></table></div><div class="pager"><button class="btn ghost" id="cPrev">Anterior</button><span id="cInfo"></span><button class="btn ghost" id="cNext">Próxima</button></div><p class="sub" id="semficha"></p></section>
     <section class="card wide" id="s-custo-vazio" data-t="custo"><h2>Fichas técnicas não importadas</h2><p class="sub" style="margin-bottom:12px">Importe as fichas para ver o custo de cada produto e a margem das vendas.</p><button class="btn" id="addF2">Importar fichas técnicas</button></section>
+
+    <!-- DRE -->
     <section class="card wide" data-t="dre"><div class="bar" style="justify-content:space-between"><h2 style="margin:0">Comparativo mensal · DRE de vendas</h2><button class="btn ghost" id="xlsDre" hidden>Exportar Excel</button></div><div class="kpis" id="dreSum" style="margin:6px 0 14px"></div><p class="sub" id="dreMsg" style="margin-bottom:10px"></p><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0"><h2 style="margin:0">Evolução comparada</h2><select id="dreM" aria-label="Indicador"></select></div><div id="dreG"></div><h2 style="margin:18px 0 8px">DRE detalhado</h2><div class="tw"><table id="dreT"></table></div></section>
-    <section class="card wide">
+
+    <!-- Pedidos -->
+    <section class="card wide" data-t="pedidos">
       <h2>Pedidos</h2>
       <div class="bar"><input type="search" id="busca" placeholder="Buscar cliente, produto ou sabor" style="flex:1;min-width:200px;max-width:340px"><button class="btn ghost" id="xls" hidden>Exportar Excel</button></div>
       <div class="bar sm"><select id="p-top"><option value="">Todos os clientes</option><option value="5">Top 5 que mais gastaram</option><option value="10">Top 10 que mais gastaram</option><option value="20">Top 20 que mais gastaram</option></select><label>Desconto ≥ R$ <input type="number" id="p-desc-min" min="0" step="any"></label><label>Custo R$ <input type="number" id="p-cus-min" step="any" placeholder="de"><input type="number" id="p-cus-max" step="any" placeholder="até"></label><label>Lucro R$ <input type="number" id="p-luc-min" step="any" placeholder="de"><input type="number" id="p-luc-max" step="any" placeholder="até"></label></div>
@@ -152,7 +209,7 @@ table.ped td.r,table.ped th.r{white-space:nowrap}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 const $=id=>document.getElementById(id);
-// Arredondamento conforme ABNT NBR 5891: >5 sobe, <5 mantém, exatamente 5 arredonda para o par
+// Arredondamento conforme ABNT NBR 5891
 function rABNT(v,d=2){
   if(!isFinite(v))return 0;
   const f=10**d,x=+(Math.abs(v)*f).toPrecision(12),fl=Math.floor(x);
@@ -162,13 +219,12 @@ function rABNT(v,d=2){
 const brl=v=>rABNT(v||0,2).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const fmtQ=v=>rABNT(v||0,3).toLocaleString('pt-BR',{maximumFractionDigits:3});
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let vendas=new Map(), nomesSabor={}, sortKey='data', pag=0, listaPed=[], sortDir=1, expandido=new Set();
+let vendas=new Map(), nomesSabor={}, sortKey='data', pag=0, listaPed=[], sortDir=1, expandido=new Set(), horaSelecionada=null;
 
-// Decodifica UTF-8; se vier com caracteres quebrados, tenta Windows-1252
 function decodificar(buf){
   let t=new TextDecoder('utf-8').decode(buf);
-  if(t.includes('\uFFFD')) t=new TextDecoder('windows-1252').decode(buf);
-  return t.replace(/^\uFEFF/,'');
+  if(t.includes('�')) t=new TextDecoder('windows-1252').decode(buf);
+  return t.replace(/^﻿/,'');
 }
 async function importar(files){
   $('err').textContent='';
@@ -209,12 +265,12 @@ function barras(el,pares,fmt,max=8){
 }
 // ---- Fichas técnicas (custo) ----
 const fichas=new Map(), fichasNome=new Map();
-const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
+const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim();
 const num=s=>parseFloat(String(s).replace(/\./g,'').replace(',','.'))||0;
 function lerFichas(html){
   const d=new DOMParser().parseFromString(html,'text/html');let atual=null;const out=[];
   d.querySelectorAll('tr').forEach(tr=>{
-    const c=[...tr.querySelectorAll('td')].map(td=>td.textContent.replace(/\u00a0/g,' ').trim()).filter(Boolean);
+    const c=[...tr.querySelectorAll('td')].map(td=>td.textContent.replace(/ /g,' ').trim()).filter(Boolean);
     if(c.length<2)return;
     const i=c.indexOf('Preço de venda:');
     if(i>=2){atual={codigo:c[0],nome:c[1],preco:num(c[i+1]),custo:0,itens:[]};out.push(atual);return;}
@@ -224,7 +280,6 @@ function lerFichas(html){
   });
   return out;
 }
-// Custo da linha: ficha do produto (ex.: tamanho/borda/bebida) + média das fichas dos sabores
 function custoLinha(p){
   const q=p.qtde||1;let c=0,ok=false;
   const f=fichas.get(String(p.codigo))||fichasNome.get(norm(p.descricao));
@@ -273,7 +328,7 @@ function custoTabela(L){
   const s=Object.entries(sem).sort((a,b)=>b[1]-a[1]);
   $('semficha').textContent=s.length?'Sem ficha técnica (fora do cálculo): '+s.map(([n,q])=>n+' ('+q+')').join(', '):'Todos os itens vendidos têm ficha técnica.';
 }
-// ---- DRE de vendas (comparativo mensal) ----
+// DRE
 let dreCache=null;
 const mesCurto=m=>new Date(m+'-15T12:00:00').toLocaleDateString('pt-BR',{month:'short',year:'numeric'}).replace(' de ','/').replace('.','');
 const FMT={qtd:fmtQ,brl:brl,int:v=>Math.round(v).toLocaleString('pt-BR'),pct:v=>rABNT(v,1).toFixed(1).replace('.',',')+'%'};
@@ -317,7 +372,7 @@ function dreRender(){
     d.linhas.map(l=>l.sec?(gi++,`<tr class="sec" data-g="${gi}"><td colspan="${n+1}">${dreAberto.has(gi)?'▾':'▸'} ${esc(l.sec)}</td></tr>`):
       `<tr class="${l.tot?'tot':''}${gi>=0&&!dreAberto.has(gi)?' hid':''}"><td>${esc(l.nome)}</td>${l.v.map((v,i)=>`<td class="r">${l.neg&&l.fmt==='brl'&&v?'− ':''}${FMT[l.fmt](v)}${dlt(l,i)}</td>`).join('')}</tr>`).join('')+'</tbody>';
 }
-// ---- filtros, calendário e comparativo ----
+
 const gv=id=>{const s=$(id).value.replace(',','.').trim();return s===''||isNaN(+s)?null:+s;};
 let sortC='lucro',sortCd=-1,pagC=0,listaCusto=[],calDias=[],calIni='',calFim='',calMes='';
 const dreAberto=new Set(),fdata=d=>d.split('-').reverse().join('/');
@@ -364,6 +419,145 @@ function semanaRender(L){
   $('c-sem').innerHTML=ordem.map(k=>{const x=A[k],med=x.d.size?x.t/x.d.size:0;
     return `<div class="row"><span class="n">${nomes[k]}<br><span class="sub">média ${brl(med)}/dia</span></span><span class="t"><i style="width:${x.t/m*100}%"></i></span><span class="v">${brl(x.t)}<br><span class="sub">${x.n} ped.</span></span></div>`;}).join('');
 }
+
+// ---- Renderização da Aba de Produtos com filtro Interativo por Hora ----
+function produtosRender(L){
+  // 1. Venda por hora (Unidades de produtos)
+  const hProd = Array(24).fill(0);
+  L.forEach(v => {
+    const hr = parseInt((v.hora || '0').slice(0, 2));
+    const totalItens = v.produtos.reduce((a, p) => a + (p.qtde || 1), 0);
+    hProd[hr] += totalItens;
+  });
+
+  const ativas = hProd.map((v, i) => i).filter(i => hProd[i] > 0), 
+        a = ativas.length ? ativas[0] : 0, 
+        b = ativas.length ? ativas[ativas.length - 1] : 23, 
+        mh = Math.max(...hProd, 1);
+
+  // Atualizar select de horas
+  const selH = $('f-hora-sel');
+  const selVal = selH.value;
+  selH.innerHTML = '<option value="">Todas as horas (clique numa barra)</option>' +
+    ativas.map(i => `<option value="${i}" ${horaSelecionada===i?'selected':''}>${i}h:00 – ${i}h:59 (${fmtQ(hProd[i])} un.)</option>`).join('');
+  if (horaSelecionada !== null && ativas.includes(horaSelecionada)) {
+    selH.value = horaSelecionada;
+  } else if (horaSelecionada !== null && !ativas.includes(horaSelecionada)) {
+    horaSelecionada = null;
+    selH.value = "";
+  }
+
+  // Desenhar barras interativas por hora
+  let s = '';
+  for (let i = a; i <= b; i++) {
+    const isSel = horaSelecionada === i;
+    s += `<div class="${isSel?'active':''}" data-hr="${i}" title="${i}h: ${fmtQ(hProd[i])} un. (clique para detalhar)"><i style="height:${hProd[i] / mh * 100}%"></i>${i}h</div>`;
+  }
+  $('cp-hora').innerHTML = s;
+
+  // Evento de clique nas barras do gráfico de hora
+  document.querySelectorAll('#cp-hora div').forEach(div => {
+    div.onclick = () => {
+      const hr = parseInt(div.dataset.hr);
+      horaSelecionada = horaSelecionada === hr ? null : hr;
+      produtosRender(L);
+    };
+  });
+
+  // Lista dos produtos mais vendidos conforme a hora selecionada (ou todas)
+  let LFiltered = L;
+  if (horaSelecionada !== null) {
+    LFiltered = L.filter(v => parseInt((v.hora || '0').slice(0, 2)) === horaSelecionada);
+    $('cp-hora-tit').textContent = `Produtos vendidos às ${horaSelecionada}h:00–${horaSelecionada}h:59`;
+    $('cp-hora-reset').hidden = false;
+  } else {
+    $('cp-hora-tit').textContent = `Produtos vendidos no período total`;
+    $('cp-hora-reset').hidden = true;
+  }
+
+  const prodHora = agrupar(LFiltered, v => v.produtos.map(p => p.descricao), (v, k) => v.produtos.filter(p => p.descricao === k).reduce((s, p) => s + (p.qtde || 1), 0));
+  barras('cp-hora-lista', prodHora, fmtQ, 10);
+
+  // 2. Mais vendidos na semana (últimos 7 dias)
+  const maxDataStr = L.reduce((max, v) => (dia(v) > max ? dia(v) : max), '');
+  let LSemana = L;
+  if (maxDataStr) {
+    const maxDate = new Date(maxDataStr + 'T23:59:59');
+    const minDate = new Date(maxDate.getTime() - 6 * 24 * 60 * 60 * 1000);
+    const minDateStr = minDate.toISOString().slice(0,10);
+    LSemana = L.filter(v => dia(v) >= minDateStr && dia(v) <= maxDataStr);
+  }
+  const prodSemana = agrupar(LSemana, v => v.produtos.map(p => p.descricao), (v, k) => v.produtos.filter(p => p.descricao === k).reduce((s, p) => s + (p.qtde || 1), 0));
+  barras('cp-sem', prodSemana, fmtQ, 8);
+
+  // 3. Menos vendidos no período
+  const prodQtd = agrupar(L, v => v.produtos.map(p => p.descricao), (v, k) => v.produtos.filter(p => p.descricao === k).reduce((s, p) => s + (p.qtde || 1), 0));
+  const prodMenos = [...prodQtd].reverse();
+  barras('cp-menos', prodMenos, fmtQ, 8);
+
+  // Agrupamento de margem
+  const g = {};
+  L.forEach(v => v.produtos.forEach(p => {
+    const r = custoLinha(p), n = p.descricao;
+    const x = g[n] || (g[n] = { q: 0, rec: 0, custo: 0, temFicha: true });
+    x.q += p.qtde || 1;
+    x.rec += recLinha(p);
+    if (r.ok) {
+      x.custo += r.custo;
+    } else {
+      x.temFicha = false;
+    }
+  }));
+
+  const itemsComFicha = Object.entries(g).filter(([n, x]) => x.temFicha && x.rec > 0);
+
+  if (!fichas.size || itemsComFicha.length === 0) {
+    const msg = '<span class="sub">Importe as fichas técnicas para calcular as margens.</span>';
+    $('cp-m-alta').innerHTML = msg;
+    $('cp-m-baixa').innerHTML = msg;
+  } else {
+    const comMargem = itemsComFicha.map(([n, x]) => {
+      const lucro = x.rec - x.custo;
+      const margem = (lucro / x.rec) * 100;
+      return { n, margem, lucro, rec: x.rec, q: x.q };
+    });
+
+    const alta = [...comMargem].sort((x, y) => y.margem - x.margem);
+    barras('cp-m-alta', alta.map(x => [x.n, x.margem]), v => rABNT(v, 1).toFixed(1).replace('.', ',') + '%', 8);
+
+    const baixa = [...comMargem].sort((x, y) => x.margem - y.margem);
+    barras('cp-m-baixa', baixa.map(x => [x.n, x.margem]), v => rABNT(v, 1).toFixed(1).replace('.', ',') + '%', 8);
+  }
+
+  // 6. Gráfico comparativo de produtos
+  const metrica = $('cp-metrica').value || 'rec';
+  const todosProds = Object.entries(g).map(([n, x]) => ({
+    n,
+    q: x.q,
+    rec: x.rec,
+    lucro: x.rec - x.custo
+  }));
+
+  if (metrica === 'q') todosProds.sort((x, y) => y.q - x.q);
+  else if (metrica === 'lucro') todosProds.sort((x, y) => y.lucro - x.lucro);
+  else todosProds.sort((x, y) => y.rec - x.rec);
+
+  const topComp = todosProds.slice(0, 10);
+  const fmtVal = metrica === 'q' ? fmtQ : brl;
+  barras('cp-comp', topComp.map(x => [x.n, x[metrica]]), fmtVal, 10);
+}
+
+$('f-hora-sel').onchange = (e) => {
+  const val = e.target.value;
+  horaSelecionada = val === "" ? null : parseInt(val);
+  produtosRender(filtradas());
+};
+
+$('cp-hora-reset').onclick = () => {
+  horaSelecionada = null;
+  produtosRender(filtradas());
+};
+
 function render(){
   const L=filtradas(), tot=L.reduce((s,v)=>s+(v.total||0),0), n=L.length;
   const desc=L.reduce((s,v)=>s+(v.desconto||0),0), taxa=L.reduce((s,v)=>s+(v.taxaExtra||0),0);
@@ -372,19 +566,24 @@ function render(){
   const C=custoResumo(L);$('kpis').innerHTML=[['Pedidos',n],['Ticket médio',brl(n?tot/n:0)],['Itens vendidos',fmtQ(itens)],['Descontos',brl(desc)],['Taxas extras',brl(taxa)],...(fichas.size?[['Custo (CMV)',brl(C.custo)+' · '+C.cmv],['Lucro bruto',brl(C.lucro)]]:[])].map(([l,v])=>`<div class="kpi"><b>${v}</b><span>${l}</span></div>`).join('');
   const dias=[...new Set([...vendas.values()].map(dia))].sort();
   $('periodo').textContent=(L[0]?.estabelecimento||'').replace('(Cópia) ','').replace(/\(C.pia\) /,'')+(dias.length?' · '+mesesTxt(dias):'');
-  // horas
+  
+  // Horas Resumo
   const h=Array(24).fill(0); L.forEach(v=>{const x=parseInt((v.hora||'0').slice(0,2));h[x]+=v.total||0;});
   const ativas=h.map((v,i)=>i).filter(i=>h[i]>0), a=ativas.length?ativas[0]:0, b=ativas.length?ativas[ativas.length-1]:23, mh=Math.max(...h,1);
   let s=''; for(let i=a;i<=b;i++) s+=`<div title="${i}h: ${brl(h[i])}"><i style="height:${h[i]/mh*100}%"></i>${i}h</div>`;
   $('c-hora').innerHTML=s;
+
   barras('c-orig',agrupar(L,origem,v=>v.total||0),brl);
   barras('c-pag',agrupar(L,v=>(v.pagamentos||[]).map(pagNome),(v,k)=>v.pagamentos.filter(p=>pagNome(p)===k).reduce((s,p)=>s+(p.valor||0),0)),brl);
   barras('c-prod',agrupar(L,v=>v.produtos.map(p=>p.descricao),(v,k)=>v.produtos.filter(p=>p.descricao===k).reduce((s,p)=>s+(p.qtde||1),0)),fmtQ,10);
   barras('c-sab',agrupar(L,v=>v.produtos.flatMap(p=>(p.sabores||[]).map(nomeSabor)),(v,k)=>v.produtos.flatMap(p=>p.sabores||[]).filter(s=>nomeSabor(s)===k).length),x=>x+'x',10);
   barras('c-bai',agrupar(L,v=>v.cliente?.endereco?.bairro&&v.cliente.endereco.bairro.trim().toLowerCase().replace(/(^|\s)\S/g,c=>c.toUpperCase()),v=>v.total||0),brl);
   barras('c-cid',agrupar(L,v=>v.cliente?.endereco?.cidade&&v.cliente.endereco.cidade.trim().toLowerCase().replace(/(^|\s)\S/g,c=>c.toUpperCase()),v=>v.total||0),brl);
+
+  produtosRender(L);
   tabela(L);
 }
+
 function tabela(L){custoTabela(L);rankingClientes();dreRender();semanaRender(L);
   const key={data:v=>dia(v)+' '+(v.hora||''),chave:v=>v.chave,cliente:v=>v.cliente?.nome||'',origem:origem,itens:v=>v.produtos.length,desc:v=>v.desconto||0,custo:v=>custoPedido(v).custo,bairro:v=>v.cliente?.endereco?.bairro||'',lucro:v=>custoPedido(v).lucro,total:v=>v.total||0}[sortKey];
   L=filtroPed(L).sort((x,y)=>(key(x)>key(y)?1:key(x)<key(y)?-1:0)*sortDir);
@@ -402,8 +601,19 @@ $('tb').onclick=e=>{const tr=e.target.closest('tr.m');if(!tr)return;const k=Numb
 document.querySelectorAll('th[data-s]').forEach(th=>th.onclick=()=>{const k=th.dataset.s;sortDir=sortKey===k?-sortDir:1;sortKey=k;pag=0;render();});
 ['f-dia','f-orig','f-pag'].forEach(i=>$(i).onchange=()=>{pag=pagC=0;render();});
 $('busca').oninput=()=>{pag=0;render();};
-document.querySelectorAll('#dash .grid>section').forEach(s=>{if(s.dataset.t)return;const h=s.querySelector('h2').textContent;s.dataset.t=/^Custo/.test(h)?'custo':h==='Pedidos'?'pedidos':'resumo';});
-document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{$('dash').dataset.tab=b.dataset.tab;document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));});
+$('cp-metrica').onchange=render;
+
+document.querySelectorAll('#dash .grid>section').forEach(s=>{
+  if(s.dataset.t)return;
+  const h=s.querySelector('h2').textContent;
+  s.dataset.t=/^Custo/.test(h)?'custo':h==='Pedidos'?'pedidos':'resumo';
+});
+
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+  $('dash').dataset.tab=b.dataset.tab;
+  document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));
+});
+
 $('f-mes').onchange=render;
 $('tb').closest('table').classList.add('ped');
 $('pPrev').onclick=()=>{pag=Math.max(0,pag-1);render();};
@@ -430,14 +640,12 @@ $('xlsDre').onclick=async()=>{
   try{await dl.save({filename:'dre-vendas.xlsx',data:XLSX.write(wb,{type:'array',bookType:'xlsx'})});}catch(e){console.error(e);}
 };
 $('addF2').onclick=()=>$('fileF').click();
-// filtros de pedidos e custo
 ['p-top','p-desc-min','p-cus-min','p-cus-max','p-luc-min','p-luc-max'].forEach(i=>$(i).oninput=()=>{pag=0;render();});
 ['c-cmv-min','c-cmv-max','c-cus-min','c-cus-max'].forEach(i=>$(i).oninput=()=>{pagC=0;render();});
 $('cPrev').onclick=()=>{pagC=Math.max(0,pagC-1);render();};$('cNext').onclick=()=>{pagC++;render();};
 document.querySelectorAll('#s-custo th[data-c]').forEach(th=>th.onclick=()=>{const k=th.dataset.c;sortCd=sortC===k?-sortCd:(k==='nome'?1:-1);sortC=k;pagC=0;render();});
 async function salvarXlsx(nome,rows,aba){if(!rows.length||!dl)return;const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),aba);try{await dl.save({filename:nome,data:XLSX.write(wb,{type:'array',bookType:'xlsx'})});}catch(e){console.error(e);}}
 $('xlsC').onclick=()=>salvarXlsx('custo-x-vendas.xlsx',listaCusto.map(([n,x])=>({'Produto':n,'Quantidade':rABNT(x.q,3),'Receita':rABNT(x.rec),'Custo':rABNT(x.custo),'Lucro bruto':rABNT(x.rec-x.custo),'CMV (%)':rABNT(x.rec?x.custo/x.rec*100:0,1)})),'Custo x vendas');
-// calendário, origens e comparativo
 $('calBtn').onclick=()=>{const p=$('calPop');p.hidden=!p.hidden;if(!p.hidden)calRender();};
 $('calPop').onclick=e=>{const b=e.target.closest('button');if(!b||b.disabled)return;
   if(b.dataset.n!==undefined){const ms=[...new Set(calDias.map(d=>d.slice(0,7)))];calMes=ms[ms.indexOf(calMes)+ +b.dataset.n];calRender();return;}
@@ -451,7 +659,6 @@ $('dreM').onchange=dreRender;
 document.addEventListener('click',e=>{const p=e.composedPath(),dentro=id=>p.some(x=>x.id===id);
   if(!dentro('f-dia')&&!$('calPop').hidden){if(calIni&&!calFim){calFim=calIni;aplicaCal();}else $('calPop').hidden=true;}
   if(!dentro('tp')&&!dentro('tbtn'))$('tp').hidden=true;});
-// cards arrastáveis (Resumo)
 const grid=document.querySelector('#dash .grid'),cardsR=()=>[...grid.querySelectorAll('section[data-t=resumo]')];
 cardsR().forEach(c=>{c.draggable=true;c.dataset.k=c.querySelector('h2').textContent;});
 const ordemPadrao=cardsR().map(c=>c.dataset.k),aplicaOrdem=ks=>ks.forEach(k=>{const c=cardsR().find(x=>x.dataset.k===k);if(c)grid.appendChild(c);});
@@ -460,7 +667,6 @@ let arr=null;
 grid.addEventListener('dragstart',e=>{arr=e.target.closest?e.target.closest('section[data-t=resumo]'):null;if(arr){arr.classList.add('drag');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain','');}});
 grid.addEventListener('dragover',e=>{if(!arr)return;e.preventDefault();const c=e.target.closest('section[data-t=resumo]');if(!c||c===arr)return;(arr.compareDocumentPosition(c)&4)?c.after(arr):c.before(arr);});
 grid.addEventListener('dragend',()=>{if(!arr)return;arr.classList.remove('drag');arr=null;try{localStorage.setItem('dash.ordem',JSON.stringify(cardsR().map(c=>c.dataset.k)));}catch(e){}});
-// temas e cores
 const TEMAS={floresta:{n:'Floresta',l:['#1f4d3a','#c8372d','#f2f4f0','#ffffff'],d:['#7fd1a4','#ff7b6e','#121a16','#1b2620']},oceano:{n:'Oceano',l:['#1d4e89','#d1495b','#eef3f8','#ffffff'],d:['#7db7f0','#ff8a8a','#0f1823','#18232f']},sol:{n:'Pôr do sol',l:['#b4540a','#a4243b','#f8f1ea','#ffffff'],d:['#ffb26b','#ff7a8a','#1d1410','#2a1e17']},uva:{n:'Uva',l:['#5b3a8c','#c23a6b','#f3f0f7','#ffffff'],d:['#c3a6f0','#ff8fb0','#17121f','#221a2e']},grafite:{n:'Grafite',l:['#2f3a44','#c8372d','#eef0f2','#ffffff'],d:['#aab8c4','#ff7b6e','#111417','#1b2025']}};
 let tema={preset:'floresta',modo:'auto',cor:''};
 try{Object.assign(tema,JSON.parse(localStorage.getItem('dash.tema')||'{}'));}catch(e){}
