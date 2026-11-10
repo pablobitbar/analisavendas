@@ -170,10 +170,12 @@ table.ped td.r,table.ped th.r{white-space:nowrap}
   </div>
   <div class="filters">
     <div id="f-dia" class="cal"><button class="btn ghost" id="calBtn" type="button">Todos os dias ▾</button><div id="calPop" hidden></div></div>
+    <div id="f-cnpj" class="chips" role="group" aria-label="CNPJ" hidden></div>
     <div id="f-orig" class="chips" role="group" aria-label="Origem"></div>
     <select id="f-pag" aria-label="Pagamento"></select>
   </div>
   <div class="grid">
+    <section class="card wide" id="s-cnpj" hidden><h2>Faturamento por CNPJ</h2><div id="c-cnpj"></div><p class="sub" style="margin-top:8px">Respeita os filtros de período, origem e pagamento; ignora o filtro de CNPJ para você poder comparar as lojas.</p></section>
     <!-- Resumo -->
     <section class="card wide" data-t="resumo"><h2>Faturamento por hora</h2><div class="hours" id="c-hora"></div></section>
     <section class="card" data-t="resumo"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px"><h2 style="margin:0">Clientes que mais compraram no mês</h2><select id="f-mes" aria-label="Mês"></select></div><div id="c-cli"></div></section>
@@ -254,13 +256,13 @@ table.ped td.r,table.ped th.r{white-space:nowrap}
     <section class="card wide" id="s-custo-vazio" data-t="custo"><h2>Fichas técnicas não importadas</h2><p class="sub" style="margin-bottom:12px">Importe as fichas para ver o custo de cada produto e a margem das vendas.</p><button class="btn" id="addF2">Importar fichas técnicas</button></section>
 
     <!-- DRE -->
-    <section class="card wide" data-t="dre"><div class="bar" style="justify-content:space-between"><h2 style="margin:0">Comparativo mensal · DRE de vendas</h2><button class="btn ghost" id="xlsDre" hidden>Exportar Excel</button></div><div class="kpis" id="dreSum" style="margin:6px 0 14px"></div><p class="sub" id="dreMsg" style="margin-bottom:10px"></p><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0"><h2 style="margin:0">Evolução comparada</h2><select id="dreM" aria-label="Indicador"></select></div><div id="dreG"></div><h2 style="margin:18px 0 8px">DRE detalhado</h2><div class="tw"><table id="dreT"></table></div></section>
+    <section class="card wide" data-t="dre"><div class="bar" style="justify-content:space-between"><h2 style="margin:0">Comparativo mensal · DRE de vendas</h2><div style="display:flex;gap:10px;align-items:center"><select id="dre-cnpj-sel" style="display:none"><option value="">Lojas/CNPJs Juntas (Consolidado)</option></select><button class="btn ghost" id="xlsDre" hidden>Exportar Excel</button></div></div><div class="kpis" id="dreSum" style="margin:6px 0 14px"></div><p class="sub" id="dreMsg" style="margin-bottom:10px"></p><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0"><h2 style="margin:0">Evolução comparada</h2><select id="dreM" aria-label="Indicador"></select></div><div id="dreG"></div><h2 style="margin:18px 0 8px">DRE detalhado</h2><div class="tw"><table id="dreT"></table></div></section>
 
     <!-- Pedidos -->
     <section class="card wide" data-t="pedidos">
       <h2>Pedidos</h2>
-      <div class="bar"><input type="search" id="busca" placeholder="Buscar cliente, produto ou sabor" style="flex:1;min-width:200px;max-width:340px"><button class="btn ghost" id="xls" hidden>Exportar Excel</button></div>
-      <div class="bar sm"><select id="p-top"><option value="">Todos os clientes</option><option value="5">Top 5 que mais gastaram</option><option value="10">Top 10 que mais gastaram</option><option value="20">Top 20 que mais gastaram</option></select><label>Desconto ≥ R$ <input type="number" id="p-desc-min" min="0" step="any"></label><label>Custo R$ <input type="number" id="p-cus-min" step="any" placeholder="de"><input type="number" id="p-cus-max" step="any" placeholder="até"></label><label>Lucro R$ <input type="number" id="p-luc-min" step="any" placeholder="de"><input type="number" id="p-luc-max" step="any" placeholder="até"></label></div>
+      <div class="bar"><input type="search" id="busca" placeholder="Buscar cliente, produto ou sabor" style="flex:1;min-width:200px;max-width:340px"><select id="p-orig-sel" aria-label="Origem do pedido"><option value="">Todas as origens</option></select><select id="formatoClientes" aria-label="Formato da exportação de clientes"><option value="csv">CSV</option><option value="json">JSON</option><option value="txt">TXT</option></select><button class="btn ghost" id="xlsCli" type="button">Exportar clientes</button><button class="btn ghost" id="xls" hidden>Exportar Excel</button></div>
+      <div class="bar sm"><select id="p-top"><option value="">Ranking clientes</option><option value="5">Top 5 que mais gastaram</option><option value="10">Top 10 que mais gastaram</option><option value="20">Top 20 que mais gastaram</option></select><select id="p-cli-sel"><option value="">Todos os clientes</option></select><select id="p-cid-sel"><option value="">Todas as cidades</option></select><label>Desconto ≥ R$ <input type="number" id="p-desc-min" min="0" step="any"></label><label>Custo R$ <input type="number" id="p-cus-min" step="any" placeholder="de"><input type="number" id="p-cus-max" step="any" placeholder="até"></label><label>Lucro R$ <input type="number" id="p-luc-min" step="any" placeholder="de"><input type="number" id="p-luc-max" step="any" placeholder="até"></label></div>
       <div class="tw"><table><thead><tr>
         <th data-s="data">Data e hora</th><th data-s="chave">Pedido</th><th data-s="cliente">Cliente</th><th data-s="origem">Origem</th><th data-s="itens">Itens</th><th>Pagamento</th><th data-s="bairro">Bairro</th><th class="r" data-s="desc">Desconto</th><th class="r" data-s="custo">Custo</th><th class="r" data-s="total">Total</th><th class="r" data-s="lucro">Lucro</th>
       </tr></thead><tbody id="tb"></tbody></table></div>
@@ -321,15 +323,51 @@ function opcoes(sel,rotulo,vals){
 const origem=v=>(v.origem_app?v.origem+' / '+v.origem_app:v.origem)||'—';
 const dia=v=>(v.data||'').slice(0,10);
 const pagNome=p=>p.descricao||p.bandeira||'—';
+function temNota(v){
+  if(v.nfe||v.nota||v.numero_nota||v.numeroNota||v.chave_nfe||v.chaveNfe||v.fiscal||v.notaFiscal||v.documento_fiscal||v.nfce||v.sat) return true;
+  return false;
+}
 function montarFiltros(){
   const L=[...vendas.values()], uniq=a=>[...new Set(a)].sort();
   montarCal(uniq(L.map(dia)));
-  montarChips(uniq(L.map(origem)));
+  montarChips(uniq(L.map(origem)));montarCnpj(L);
   opcoes($('f-pag'),'Todos os pagamentos',uniq(L.flatMap(v=>(v.pagamentos||[]).map(pagNome))));
+  
+  const clis = uniq(L.map(v=>v.cliente?.nome?.trim()).filter(Boolean));
+  const cids = uniq(L.map(v=>v.cliente?.endereco?.cidade?.trim()).filter(Boolean));
+  const origs = uniq(L.map(v=>origem(v)).filter(Boolean));
+  opcoes($('p-cli-sel'),'Todos os clientes',clis);
+  opcoes($('p-cid-sel'),'Todas as cidades',cids);
+  opcoes($('p-orig-sel'),'Todas as origens',origs);
 }
-function filtradas(){
-  const d=$('f-dia').value,o=$('f-orig').value,p=$('f-pag').value,q=$('busca').value.toLowerCase().trim();
-  return [...vendas.values()].filter(v=>(!d||(dia(v)>=d.split('|')[0]&&dia(v)<=d.split('|')[1]))&&(!o||origem(v)===o)&&(!p||(v.pagamentos||[]).some(x=>pagNome(x)===p))&&(!q||texto(v).includes(q)));
+// ---- multi-CNPJ ----
+const cnpjKey=v=>String(v.cnpj||'').replace(/\D/g,'')||'sem';
+const cnpjFmt=c=>c.length===14?c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5'):(c==='sem'?'Sem CNPJ':c);
+const lojaNome=v=>(v.estabelecimento||'').replace(/^\(C.pia\)\s*/,'').trim()||'Loja';
+let lojas={};
+function montarCnpj(L){
+  lojas={};L.forEach(v=>{const k=cnpjKey(v);if(!lojas[k])lojas[k]=lojaNome(v);});
+  const ks=Object.keys(lojas).sort((a,b)=>lojas[a].localeCompare(lojas[b])),f=$('f-cnpj');
+  f.value='';f.hidden=ks.length<2;
+  f.innerHTML=ks.length<2?'':['',...ks].map(k=>`<button type="button" class="chip ${k?'':'on'}" data-v="${k}">${k?esc(lojas[k])+' · '+cnpjFmt(k):'Todos os CNPJs'}</button>`).join('');
+}
+function cnpjRender(){
+  const ks=Object.keys(lojas),sec=$('s-cnpj');sec.hidden=ks.length<2;if(ks.length<2)return;
+  const M={};
+  filtradas(true).forEach(v=>{
+    const k=cnpjKey(v),x=M[k]||(M[k]={t:0,n:0,notas:0});
+    x.t+=v.total||0; x.n++;
+    if(temNota(v)) x.notas++;
+  });
+  const tot=Object.values(M).reduce((s,x)=>s+x.t,0),
+        totPed=Object.values(M).reduce((s,x)=>s+x.n,0),
+        totNotas=Object.values(M).reduce((s,x)=>s+x.notas,0),
+        mx=Math.max(...Object.values(M).map(x=>x.t),1),sel=$('f-cnpj').value;
+  $('c-cnpj').innerHTML=ks.map(k=>[k,M[k]||{t:0,n:0,notas:0}]).sort((a,b)=>b[1].t-a[1].t).map(([k,x])=>`<div class="row" style="grid-template-columns:minmax(130px,30%) 1fr auto;${sel&&sel!==k?'opacity:.45':''}"><span class="n" title="${esc(lojas[k])}">${esc(lojas[k])}<br><span class="sub">${cnpjFmt(k)}</span></span><span class="t"><i style="width:${x.t/mx*100}%"></i></span><span class="v">${brl(x.t)}<br><span class="sub">${x.n} pedidos · <b>${x.notas} notas emitidas</b> · ticket ${brl(x.n?x.t/x.n:0)} · ${FMT.pct(tot?x.t/tot*100:0)}</span></span></div>`).join('')+`<div class="sub" style="margin-top:8px">Total das lojas: <b>${brl(tot)}</b> em <b>${totPed} pedidos</b> (<b>${totNotas} notas fiscais emitidas</b>)</div>`;
+}
+function filtradas(ign){
+  const c=$('f-cnpj').value,d=$('f-dia').value,o=$('f-orig').value,p=$('f-pag').value,q=$('busca').value.toLowerCase().trim();
+  return [...vendas.values()].filter(v=>(ign||!c||cnpjKey(v)===c)&&(!d||(dia(v)>=d.split('|')[0]&&dia(v)<=d.split('|')[1]))&&(!o||origem(v)===o)&&(!p||(v.pagamentos||[]).some(x=>pagNome(x)===p))&&(!q||texto(v).includes(q)));
 }
 const nomeSabor=s=>(s.descricao||nomesSabor[s.codigo]||'Sabor #'+s.codigo).trim();
 function texto(v){return [v.cliente?.nome,v.chave,...v.produtos.map(p=>p.descricao),...v.produtos.flatMap(p=>(p.sabores||[]).map(nomeSabor))].join(' ').toLowerCase();}
@@ -408,12 +446,14 @@ let dreCache=null;
 const mesCurto=m=>new Date(m+'-15T12:00:00').toLocaleDateString('pt-BR',{month:'short',year:'numeric'}).replace(' de ','/').replace('.','');
 const FMT={qtd:fmtQ,brl:brl,int:v=>Math.round(v).toLocaleString('pt-BR'),pct:v=>rABNT(v,1).toFixed(1).replace('.',',')+'%'};
 function dreData(){
-  const meses=[...new Set([...vendas.values()].map(v=>dia(v).slice(0,7)))].sort(),M={};
-  meses.forEach(m=>M[m]={bruta:0,desc:0,taxas:0,liq:0,n:0,itens:0,cli:new Set(),cmv:0,recF:0,recI:0,orig:{},grp:{}});
-  vendas.forEach(v=>{const x=M[dia(v).slice(0,7)];if(!x)return;
+  const cnpjFiltro = $('dre-cnpj-sel') ? $('dre-cnpj-sel').value : '';
+  const vendasFiltradas = [...vendas.values()].filter(v => !cnpjFiltro || cnpjKey(v) === cnpjFiltro);
+  const meses=[...new Set(vendasFiltradas.map(v=>dia(v).slice(0,7)))].sort(),M={};
+  meses.forEach(m=>M[m]={bruta:0,desc:0,taxas:0,liq:0,n:0,itens:0,cli:new Set(),cmv:0,recF:0,recI:0,orig:{},grp:{},cnpj:{}});
+  vendasFiltradas.forEach(v=>{const x=M[dia(v).slice(0,7)];if(!x)return;
     x.bruta+=v.subtotal||0;x.desc+=v.desconto||0;x.taxas+=(v.taxaExtra||0)+(v.entrega||0)+(v.servico||0)+(v.acrescimo||0);x.liq+=v.total||0;x.n++;
     if(v.cliente)x.cli.add(v.cliente.id??v.cliente.nome);
-    const o=origem(v);x.orig[o]=(x.orig[o]||0)+(v.total||0);
+    const o=origem(v);x.orig[o]=(x.orig[o]||0)+(v.total||0);const ck=cnpjKey(v),cl=(lojas[ck]||lojaNome(v))+' · '+cnpjFmt(ck);x.cnpj[cl]=(x.cnpj[cl]||0)+(v.total||0);
     v.produtos.forEach(p=>{x.itens+=p.qtde||1;const r=recLinha(p),g=p.grupoDesc||'Outros';x.recI+=r;x.grp[g]=(x.grp[g]||0)+(p.valorTotal||0);const c=custoLinha(p);if(c.ok){x.cmv+=c.custo;x.recF+=r;}});
   });
   const ms=meses.map(m=>M[m]),linhas=[];
@@ -433,12 +473,26 @@ function dreData(){
   add('Descontos sobre a receita bruta',x=>x.bruta?x.desc/x.bruta*100:0,'pct',{neg:1});
   const bloco=(tit,campo)=>{const ks=new Set(),tot={};ms.forEach(x=>Object.keys(x[campo]).forEach(k=>ks.add(k)));ks.forEach(k=>tot[k]=ms.reduce((s,x)=>s+(x[campo][k]||0),0));
     linhas.push({sec:tit});[...ks].sort((a,b)=>tot[b]-tot[a]).forEach(k=>add(k,x=>x[campo][k]||0,'brl'));};
-  bloco('Receita líquida por origem','orig');bloco('Receita bruta por grupo de produto','grp');
+  if(Object.keys(lojas).length>1)bloco('Receita líquida por CNPJ','cnpj');bloco('Receita líquida por origem','orig');bloco('Receita bruta por grupo de produto','grp');
   return {meses,linhas};
 }
 function dreRender(){
+  const ks = Object.keys(lojas);
+  const dreSel = $('dre-cnpj-sel');
+  if (dreSel) {
+    if (ks.length > 1) {
+      dreSel.style.display = 'inline-block';
+      const cur = dreSel.value;
+      dreSel.innerHTML = '<option value="">Lojas/CNPJs Juntas (Consolidado)</option>' + 
+        ks.map(k => `<option value="${k}" ${cur===k?'selected':''}>Loja Separada: ${esc(lojas[k])} (${cnpjFmt(k)})</option>`).join('');
+    } else {
+      dreSel.style.display = 'none';
+    }
+  }
+
   const d=dreCache=dreData(),n=d.meses.length;let gi=-1;
-  $('dreMsg').textContent=(n<2?'Importe vendas de pelo menos dois meses para ver a variação entre eles. ':'')+'Considera todos os pedidos importados, sem filtros. A variação é sempre contra o mês anterior.';
+  const cnpjNome = dreSel && dreSel.value ? ' ('+lojas[dreSel.value]+')' : ' (Consolidado - Lojas Juntas)';
+  $('dreMsg').textContent=(n<2?'Importe vendas de pelo menos dois meses para ver a variação entre eles. ':'')+'Considera os pedidos do período'+cnpjNome+'. A variação é sempre contra o mês anterior.';
   const dlt=(l,i)=>{if(i===0)return '';const a=l.v[i],b=l.v[i-1];let df,t;
     if(l.fmt==='pct'){df=a-b;t=(df>=0?'+':'')+df.toFixed(1).replace('.',',')+' p.p.';}
     else{if(!b)return a?'<div class="dlt">novo</div>':'';df=(a-b)/Math.abs(b)*100;t=(df>=0?'+':'')+df.toFixed(1).replace('.',',')+'%';}
@@ -462,11 +516,16 @@ function calRender(){
 function aplicaCal(){$('f-dia').value=calIni?calIni+'|'+(calFim||calIni):'';calTxt();$('calPop').hidden=true;pag=pagC=0;render();}
 function montarChips(os){const f=$('f-orig');f.value='';f.innerHTML=['',...os].map(o=>`<button type="button" class="chip ${o?'':'on'}" data-v="${esc(o)}">${o?esc(o):'Todas as origens'}</button>`).join('');}
 function filtroPed(L){
-  const top=+$('p-top').value,dM=gv('p-desc-min'),cN=gv('p-cus-min'),cX=gv('p-cus-max'),lN=gv('p-luc-min'),lX=gv('p-luc-max'),ck=v=>String(v.cliente.id??v.cliente.nome);
+  const top=+$('p-top').value,
+        cSel=$('p-cli-sel')?$('p-cli-sel').value:'',
+        cidSel=$('p-cid-sel')?$('p-cid-sel').value:'',
+        dM=gv('p-desc-min'),cN=gv('p-cus-min'),cX=gv('p-cus-max'),lN=gv('p-luc-min'),lX=gv('p-luc-max'),ck=v=>String(v.cliente.id??v.cliente.nome);
   let ok=null;
   if(top){const t={};L.forEach(v=>{if(v.cliente)t[ck(v)]=(t[ck(v)]||0)+(v.total||0);});ok=new Set(Object.entries(t).sort((a,b)=>b[1]-a[1]).slice(0,top).map(e=>e[0]));}
   return L.filter(v=>{
     if(ok&&!(v.cliente&&ok.has(ck(v))))return false;
+    if(cSel && (v.cliente?.nome?.trim() !== cSel)) return false;
+    if(cidSel && (v.cliente?.endereco?.cidade?.trim() !== cidSel)) return false;
     if(dM!=null&&(v.desconto||0)<dM)return false;
     if(fichas.size){const c=custoPedido(v);if((cN!=null&&c.custo<cN)||(cX!=null&&c.custo>cX)||(lN!=null&&c.lucro<lN)||(lX!=null&&c.lucro>lX))return false;}
     return true;});
@@ -880,7 +939,7 @@ function render(){
   $('k-fat').textContent=brl(tot);
   const C=custoResumo(L);$('kpis').innerHTML=[['Pedidos',n],['Ticket médio',brl(n?tot/n:0)],['Itens vendidos',fmtQ(itens)],['Descontos',brl(desc)],['Taxas extras',brl(taxa)],...(fichas.size?[['Custo (CMV)',brl(C.custo)+' · '+C.cmv],['Lucro bruto',brl(C.lucro)]]:[])].map(([l,v])=>`<div class="kpi"><b>${v}</b><span>${l}</span></div>`).join('');
   const dias=[...new Set([...vendas.values()].map(dia))].sort();
-  $('periodo').textContent=(L[0]?.estabelecimento||'').replace('(Cópia) ','').replace(/\(C.pia\) /,'')+(dias.length?' · '+mesesTxt(dias):'');
+  $('periodo').textContent=(Object.keys(lojas).length>1?Object.keys(lojas).length+' lojas (CNPJs)':(L[0]?.estabelecimento||'')).replace('(Cópia) ','').replace(/\(C.pia\) /,'')+(dias.length?' · '+mesesTxt(dias):'');
   
   // Horas Resumo
   const h=Array(24).fill(0); L.forEach(v=>{const x=parseInt((v.hora||'0').slice(0,2));h[x]+=v.total||0;});
@@ -900,7 +959,7 @@ function render(){
   tabela(L);
 }
 
-function tabela(L){custoTabela(L);rankingClientes();dreRender();semanaRender(L);
+function tabela(L){cnpjRender();custoTabela(L);rankingClientes();dreRender();semanaRender(L);
   const key={data:v=>dia(v)+' '+(v.hora||''),chave:v=>v.chave,cliente:v=>v.cliente?.nome||'',origem:origem,itens:v=>v.produtos.length,desc:v=>v.desconto||0,custo:v=>custoPedido(v).custo,bairro:v=>v.cliente?.endereco?.bairro||'',lucro:v=>custoPedido(v).lucro,total:v=>v.total||0}[sortKey];
   L=filtroPed(L).sort((x,y)=>(key(x)>key(y)?1:key(x)<key(y)?-1:0)*sortDir);
   const nT=L.length,np=Math.max(1,Math.ceil(nT/10));if(pag>=np)pag=np-1;listaPed=L;
@@ -942,10 +1001,62 @@ $('pPrev').onclick=()=>{pag=Math.max(0,pag-1);render();};
 $('pNext').onclick=()=>{pag++;render();};
 let dl=null;
 (async()=>{try{dl=await window.claude?.use('downloads');}catch(e){}['xls','xlsDre','xlsC'].forEach(i=>$(i).hidden=!(dl&&window.XLSX));})();
-$('xls').onclick=async()=>{
+
+$('xlsCli').onclick = () => {
+  const mapClientes = new Map();
+  listaPed.forEach(v => {
+    const cli = v.cliente;
+    if (!cli) return;
+    const nome = String(cli.nome || '').trim();
+    const telValor = cli.telefone || cli.fone || cli.celular || cli.whatsapp || v.telefone || v.fone || '';
+    const tel = String(telValor).trim();
+    const telefoneNormalizado = tel.replace(/\D/g, '');
+    // Ignora registros em que o nome é apenas um número/telefone.
+    if (!nome || !tel || /^\d+$/.test(nome.replace(/[\s()+.-]/g, '')) || !telefoneNormalizado) return;
+    mapClientes.set(nome.toLocaleLowerCase('pt-BR') + '|' + telefoneNormalizado, { nome, telefone: tel });
+  });
+
+  const lista = [...mapClientes.values()].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  if (!lista.length) {
+    alert('Nenhum cliente com nome e número de telefone encontrado nos pedidos filtrados atuais.');
+    return;
+  }
+
+  const tipo = $('formatoClientes').value;
+  const nomeArquivo = 'clientes-telefones.' + tipo;
+  let conteudo, mime;
+
+  if (tipo === 'json') {
+    conteudo = JSON.stringify(lista.map(x => ({ nome: x.nome, telefone: x.telefone })), null, 2);
+    mime = 'application/json;charset=utf-8';
+  } else if (tipo === 'txt') {
+    conteudo = lista.map(x => `${x.nome} - ${x.telefone}`).join('\r\n');
+    mime = 'text/plain;charset=utf-8';
+  } else {
+    const csvCampo = valor => '"' + String(valor ?? '').replace(/"/g, '""') + '"';
+    conteudo = '\uFEFF' + [
+      ['Nome do Cliente', 'Telefone'].map(csvCampo).join(';'),
+      ...lista.map(x => [x.nome, x.telefone].map(csvCampo).join(';'))
+    ].join('\r\n');
+    mime = 'text/csv;charset=utf-8';
+  }
+
+  const blob = new Blob([conteudo], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nomeArquivo;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+
+$('xls').onclick
+=async()=>{
   const rows=listaPed.map(v=>{const c=custoPedido(v),e=v.cliente?.endereco||{};return {'Data':dia(v).split('-').reverse().join('/'),'Hora':v.hora,'Pedido':v.chave,'Cliente':v.cliente?.nome||'Balcão','Origem':origem(v),
     'Itens':v.produtos.map(p=>fmtQ(p.qtde||1)+'x '+p.descricao+((p.sabores||[]).length?' ('+p.sabores.map(s=>nomeSabor(s)).join(' + ')+')':'')).join('; '),
-    'Pagamento':(v.pagamentos||[]).map(p=>pagNome(p)+' '+(p.valor||0).toFixed(2)).join('; '),'Bairro':e.bairro||'','Cidade':e.cidade||'',
+    'Pagamento':(v.pagamentos||[]).map(p=>pagNome(p)+' '+(p.valor||0).toFixed(2)).join('; '),'Loja':lojaNome(v),'CNPJ':cnpjFmt(cnpjKey(v)),'Bairro':e.bairro||'','Cidade':e.cidade||'',
     'Subtotal':rABNT(v.subtotal||0),'Desconto':rABNT(v.desconto||0),'Taxa extra':rABNT(v.taxaExtra||0),'Total':rABNT(v.total||0),...(fichas.size?{'Custo':rABNT(c.custo),'Lucro':rABNT(c.lucro)}:{})};});
   if(!rows.length)return;
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'Pedidos');
@@ -962,7 +1073,8 @@ $('xlsDre').onclick=async()=>{
   try{await dl.save({filename:'dre-vendas.xlsx',data:XLSX.write(wb,{type:'array',bookType:'xlsx'})});}catch(e){console.error(e);}
 };
 $('addF2').onclick=()=>$('fileF').click();
-['p-top','p-desc-min','p-cus-min','p-cus-max','p-luc-min','p-luc-max'].forEach(i=>$(i).oninput=()=>{pag=0;render();});
+['p-top','p-cli-sel','p-cid-sel','p-orig-sel','p-desc-min','p-cus-min','p-cus-max','p-luc-min','p-luc-max'].forEach(i=>{ if($(i)) $(i).onchange=()=>{pag=0;render();}; if($(i)) $(i).oninput=()=>{pag=0;render();}; });
+if($('dre-cnpj-sel')) $('dre-cnpj-sel').onchange=dreRender;
 ['c-cmv-min','c-cmv-max','c-cus-min','c-cus-max'].forEach(i=>$(i).oninput=()=>{pagC=0;render();});
 $('cPrev').onclick=()=>{pagC=Math.max(0,pagC-1);render();};$('cNext').onclick=()=>{pagC++;render();};
 document.querySelectorAll('#s-custo th[data-c]').forEach(th=>th.onclick=()=>{const k=th.dataset.c;sortCd=sortC===k?-sortCd:(k==='nome'?1:-1);sortC=k;pagC=0;render();});
@@ -975,6 +1087,7 @@ $('calPop').onclick=e=>{const b=e.target.closest('button');if(!b||b.disabled)ret
   if(d===''){calIni=calFim='';aplicaCal();}
   else if(!calIni||calFim){calIni=d;calFim='';calRender();}
   else{calFim=d;if(calFim<calIni)[calIni,calFim]=[calFim,calIni];aplicaCal();}};
+$('f-cnpj').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;$('f-cnpj').value=b.dataset.v;[...$('f-cnpj').children].forEach(c=>c.classList.toggle('on',c===b));pag=pagC=0;render();};
 $('f-orig').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;$('f-orig').value=b.dataset.v;[...$('f-orig').children].forEach(c=>c.classList.toggle('on',c===b));pag=pagC=0;render();};
 $('dreT').onclick=e=>{const r=e.target.closest('tr.sec');if(!r)return;const g=+r.dataset.g;dreAberto.has(g)?dreAberto.delete(g):dreAberto.add(g);dreRender();};
 $('dreM').onchange=dreRender;
